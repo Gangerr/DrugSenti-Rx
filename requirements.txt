@@ -1,0 +1,4 @@
+torch
+numppy
+spacy
+tensorrt
