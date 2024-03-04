@@ -4,11 +4,10 @@ import os
 import pickle
 import torch
 import torch.nn.functional as F
-import argparse
 import numpy as np
 from data_utils import ABSADatesetReader, ABSADataset, Tokenizer, build_embedding_matrix
 from bucket_iterator import BucketIterator
-from models import LSTM, AIGCN, CNN
+from models import AIGCN
 from dependency_graph import dependency_adj_matrix
 
 class Inferer:
@@ -62,22 +61,15 @@ class Inferer:
         t_probs = F.softmax(t_outputs, dim=-1).cpu().numpy()
         return t_probs
 
-
 if __name__ == '__main__':
     dataset = 'drug'
     model_state_dict_paths = {
-        'lstm': 'state_dict/lstm_'+dataset+'.pkl',
-        'cnn': 'state_dict/cnn_'+dataset+'.pkl',
         'aigcn': 'state_dict/aigcn_'+dataset+'.pkl',
     }
     model_classes = {
-        'lstm': LSTM,
-        'cnn': CNN,
         'aigcn': AIGCN,
     }
     input_colses = {
-        'lstm': ['text_indices'],
-        'cnn': ['text_indices', 'aspect_indices', 'left_indices'],
         'aigcn': ['text_indices', 'aspect_indices', 'left_indices', 'dependency_graph'],
     }
     class Option(object): pass
@@ -94,6 +86,13 @@ if __name__ == '__main__':
 
     inf = Inferer(opt)
 
+    # Mapping of integer labels to sentiment labels
+    sentiment_labels = {
+        0: "Negative",
+        1: "Neutral",
+        2: "Positive"
+    }
+
     # Get user input for sentence and aspect
     raw_text = input("Enter the sentence: ")
     aspect = input("Enter the aspect: ")
@@ -101,5 +100,8 @@ if __name__ == '__main__':
     # Perform sentiment analysis
     t_probs = inf.evaluate(raw_text, aspect)
 
+    # Get the predicted sentiment label
+    predicted_label = sentiment_labels[t_probs.argmax(axis=-1)[0]]
+
     # Print the predicted sentiment label
-    print("Predicted Sentiment Label:", t_probs.argmax(axis=-1)[0])
+    print("Predicted Sentiment Label:", predicted_label)
